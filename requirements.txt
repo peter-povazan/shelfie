@@ -2,5 +2,5 @@ fastapi
 pydantic
 httpx
 uvicorn
-openai
 python-multipart
+openai>=1.70.0

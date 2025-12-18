@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CameraIcon, PhotoIcon, ArrowPathIcon, SparklesIcon } from "@heroicons/react/24/outline";
-import HomepageIllustration from "@/components/HomepageIllustration";
 
 function PlaceholderSVG() {
   return (
@@ -115,7 +114,13 @@ export default function Home() {
                   </>
                 ) : (
                   <div className="flex h-full items-center justify-center">
-                    <HomepageIllustration className="h-full w-full" />
+                    <img
+                      src="/assets/home.webp"
+                      alt=""
+                      className="block h-full w-full object-contain"
+                      loading="eager"
+                      decoding="async"
+                    />
                   </div>
                 )}
               </div>

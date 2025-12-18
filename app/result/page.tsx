@@ -82,7 +82,6 @@ export default function ResultPage() {
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], "shelfie-story.png", { type: "image/png" });
 
-      // @ts-expect-error
       const canShareFiles = !!navigator.canShare?.({ files: [file] });
 
       if (navigator.share && canShareFiles) {

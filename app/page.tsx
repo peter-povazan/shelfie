@@ -27,8 +27,68 @@ function ShelfieLogo() {
   );
 }
 
+async function getImageDims(file: File): Promise<{ width: number; height: number }> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Failed to load image"));
+      el.src = url;
+    });
+    return { width: img.naturalWidth, height: img.naturalHeight };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function fileToDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function AnalyzingLabel() {
+  return (
+    <span className="flex items-center justify-center gap-2">
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" />
+      <span className="relative">
+        ANALYZUJEM
+        <span className="inline-flex w-6 justify-start">
+          <span className="animate-[dot_1.2s_infinite]">.</span>
+          <span className="animate-[dot_1.2s_infinite] [animation-delay:0.2s]">
+            .
+          </span>
+          <span className="animate-[dot_1.2s_infinite] [animation-delay:0.4s]">
+            .
+          </span>
+        </span>
+      </span>
+
+      <style jsx>{`
+        @keyframes dot {
+          0%,
+          20% {
+            opacity: 0;
+          }
+          40% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+      `}</style>
+    </span>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
+  const isDev = process.env.NODE_ENV !== "production";
 
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
@@ -36,6 +96,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [lastSource, setLastSource] = useState<"camera" | "gallery">("camera");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const hasPhoto = Boolean(file && previewUrl);
 
@@ -48,60 +109,108 @@ export default function Home() {
   async function pick(f?: File, source?: "camera" | "gallery") {
     if (!f) return;
     if (!f.type.startsWith("image/")) return;
+    if (isAnalyzing) return;
 
     if (source) setLastSource(source);
 
-    // ⬇️ KOMPRESIA
-    const compressed = await compressImageFile(f, {
-      maxSide: 1600,
-      quality: 0.82,
-      mimeType: "image/jpeg",
-    });
+    if (isDev) {
+      console.log("ORIGINAL:", {
+        type: f.type,
+        sizeKB: Math.round(f.size / 1024),
+        name: f.name,
+      });
+    }
+
+    let out: File = f;
+
+    try {
+      out = await compressImageFile(f, {
+        maxSide: 1600,
+        quality: 0.82,
+        mimeType: "image/jpeg",
+      });
+    } catch (e) {
+      if (isDev) console.warn("compressImageFile failed, using original", e);
+    }
+
+    if (isDev) {
+      const dims = await getImageDims(out);
+      console.log("TO UPLOAD:", {
+        type: out.type,
+        sizeKB: Math.round(out.size / 1024),
+        name: out.name,
+        dims: `${dims.width}x${dims.height}`,
+      });
+    }
+
+    // ✅ uložiť do sessionStorage pre share kartu (Result)
+    // (dataURL je bezpečné pre html-to-image, žiadne CORS)
+    try {
+      const dataUrl = await fileToDataUrl(out);
+      sessionStorage.setItem("shelfie_photo", dataUrl);
+    } catch (e) {
+      if (isDev) console.warn("Failed to store shelfie_photo", e);
+      sessionStorage.removeItem("shelfie_photo");
+    }
 
     if (previewUrl) URL.revokeObjectURL(previewUrl);
 
-    setFile(compressed);
-    setPreviewUrl(URL.createObjectURL(compressed));
+    setFile(out);
+    setPreviewUrl(URL.createObjectURL(out));
   }
 
   function openCamera() {
+    if (isAnalyzing) return;
     setLastSource("camera");
     cameraInputRef.current?.click();
   }
 
   function openGallery() {
+    if (isAnalyzing) return;
     setLastSource("gallery");
     galleryInputRef.current?.click();
   }
 
   function clearPhoto() {
+    if (isAnalyzing) return;
+
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setFile(null);
+
+    // ✅ zmazať aj fotku pre share
+    sessionStorage.removeItem("shelfie_photo");
 
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   }
 
   async function analyze() {
-    if (!file) return;
+    if (!file || isAnalyzing) return;
 
-    const fd = new FormData();
-    fd.append("image", file);
+    try {
+      setIsAnalyzing(true);
 
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      body: fd,
-    });
+      const fd = new FormData();
+      fd.append("image", file);
 
-    if (!res.ok) {
-      alert("Analýza zlyhala");
-      return;
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: fd,
+      });
+
+      if (!res.ok) {
+        if (isDev) console.log("ANALYZE FAILED:", res.status);
+        alert("Analýza zlyhala");
+        return;
+      }
+
+      const data = await res.json();
+      sessionStorage.setItem("shelfie_result", JSON.stringify(data));
+      router.push("/result");
+    } finally {
+      setIsAnalyzing(false);
     }
-
-    const data = await res.json();
-    sessionStorage.setItem("shelfie_result", JSON.stringify(data));
-    router.push("/result");
   }
 
   const cameraBtnClass = `
@@ -113,7 +222,7 @@ export default function Home() {
     border-b-4 border-[#64393e]
     bg-[#ea8d79]
     px-2 py-2
-    text-m font-bold
+    text-m font-semibold
     transition
     active:translate-y-[2px]
     active:border-b-2
@@ -130,7 +239,7 @@ export default function Home() {
     border-b-4 border-[#384361]
     bg-[#18b1df]
     px-2 py-2
-    text-m font-bold
+    text-m font-semibold
     transition
     active:translate-y-[2px]
     active:border-b-2
@@ -138,19 +247,24 @@ export default function Home() {
     text-white
   `;
 
+  const analyzeBtnClass = `
+    ${lastSource === "gallery" ? galleryBtnClass : cameraBtnClass}
+    ${isAnalyzing ? "opacity-80 cursor-not-allowed" : ""}
+  `;
+
   return (
     <main className="min-h-screen bg-[#d1d4fa] text-slate-900">
       <div className="mx-auto flex w-full max-w-md flex-col px-5 py-6">
         <section>
           <div className="p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-center">
               <ShelfieLogo />
             </div>
 
-            <div className="mt-6 text-2xl font-bold tracking-tight">
+            <div className="mt-6 text-2xl font-bold tracking-tight text-center">
               Odfoť si poličku
             </div>
-            <div className="mt-1 text-sm font-semibold text-slate-600">
+            <div className="mt-1 text-sm font-semibold text-slate-600 text-center">
               a spoznaj svoj knihotyp
             </div>
 
@@ -165,7 +279,8 @@ export default function Home() {
 
                   <button
                     onClick={clearPhoto}
-                    className="absolute right-3 top-3 rounded-full border border-slate-900 bg-white/90 px-3 py-1 text-xs font-semibold shadow-sm"
+                    disabled={isAnalyzing}
+                    className="absolute right-3 top-3 rounded-full border border-slate-900 bg-white/90 px-3 py-1 text-xs font-semibold shadow-sm disabled:opacity-50"
                   >
                     <ArrowPathIcon className="h-5 w-5" />
                   </button>
@@ -186,28 +301,33 @@ export default function Home() {
                   <button
                     onClick={openCamera}
                     className={cameraBtnClass}
+                    disabled={isAnalyzing}
                   >
-                    <CameraIcon className="h-8 w-8" />
+                    <CameraIcon className="h-8 w-8 stroke-[1.5]" />
                   </button>
 
                   <button
                     onClick={openGallery}
                     className={galleryBtnClass}
+                    disabled={isAnalyzing}
                   >
-                    <PhotoIcon className="h-8 w-8" />
+                    <PhotoIcon className="h-8 w-8 stroke-[1.5]" />
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={analyze}
-                  className={
-                    lastSource === "gallery"
-                      ? galleryBtnClass
-                      : cameraBtnClass
-                  }
+                  disabled={isAnalyzing}
+                  className={analyzeBtnClass}
                 >
-                  <SparklesIcon className="h-8 w-8" />
-                  ZISTI MÔJ KNIHOTYP
+                  {isAnalyzing ? (
+                    <AnalyzingLabel />
+                  ) : (
+                    <>
+                      <SparklesIcon className="h-8 w-8 stroke-[1.2]" />
+                      ZISTI MÔJ KNIHOTYP
+                    </>
+                  )}
                 </button>
               )}
             </div>
@@ -219,26 +339,25 @@ export default function Home() {
           </div>
         </section>
 
-          <footer className="mt-8 text-center text-sm text-slate-600">
-            <div>
-              <Link href="/o-projekte" className="hover:text-slate-900">
-                O projekte
-              </Link>
-              <span className="mx-2">|</span>
-              <Link href="/sukromie" className="hover:text-slate-900">
-                Súkromie
-              </Link>
-              <span className="mx-2">|</span>
-              <Link href="/podmienky" className="hover:text-slate-900">
-                Podmienky
-              </Link>
-            </div>
+        <footer className="mt-8 text-center text-sm text-slate-600">
+          <div>
+            <Link href="/o-projekte" className="hover:text-slate-900">
+              O projekte
+            </Link>
+            <span className="mx-2">|</span>
+            <Link href="/sukromie" className="hover:text-slate-900">
+              Súkromie
+            </Link>
+            <span className="mx-2">|</span>
+            <Link href="/podmienky" className="hover:text-slate-900">
+              Podmienky
+            </Link>
+          </div>
 
-            <div className="mt-2 text-xs text-slate-500">
-              © 2026 Albatros Media Slovakia s.r.o.
-            </div>
-          </footer>
-
+          <div className="mt-2 text-xs text-slate-500">
+            © 2026 Albatros Media Slovakia s.r.o.
+          </div>
+        </footer>
       </div>
 
       <input

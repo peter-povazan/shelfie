@@ -39,7 +39,7 @@ function normalizeArchetypeKey(archetype: string): ArchetypeKey {
 // ✅ uprav si len toto, ak máš inú cestu/názvy
 function getArchetypeImageSrc(archetype: string) {
   const key = normalizeArchetypeKey(archetype);
-  return `/assets/archetypes/${key}.webp`;
+  return `/assets/home.webp`;
 }
 
 export default function Result2Page() {
@@ -140,7 +140,8 @@ export default function Result2Page() {
   if (!result) return null;
 
   const copy = getCopy(result.archetype);
-  const archetypeImg = getArchetypeImageSrc(result.archetype);
+  const pageBg = copy.theme.pageBg ?? "bg-white";
+  const archetypeImg = copy.theme.imageSrc ?? "/assets/home.webp";
 
   const cameraBtnClass = `
     flex items-center justify-center gap-2
@@ -167,13 +168,17 @@ export default function Result2Page() {
   `;
 
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main
+  className="min-h-screen text-slate-900"
+  style={{ backgroundColor: copy.theme.pageBg }}
+>
+
       <div className="mx-auto w-full max-w-md px-5 py-6">
         <section>
           {/* EXPORTOVATEĽNÁ „STORY“ KARTA */}
           <div
             ref={cardRef}
-            className="relative w-full overflow-hidden bg-white"
+            className="relative w-full overflow-hidden"
             style={{ aspectRatio: "9 / 16" }}
           >
             <div className="absolute inset-0">
@@ -202,9 +207,9 @@ export default function Result2Page() {
                     )}
                   </div>
 
-                  {/* väčší štvorček + vyššie (šetri miesto dole) */}
-                  <div className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-[75%]">
-                    <div className="h-50 w-50 overflow-hidden rounded-2xl border-2 border-[#9393bc] bg-white shadow-md">
+                  {/* Wepb image - Knihotyp */}
+                  <div className="absolute inset-x-0 top-full -translate-y-[75%] px-0">
+                    <div className="h-48 w-full overflow-hidden">
                       <img
                         src={archetypeImg}
                         alt=""

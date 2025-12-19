@@ -200,10 +200,12 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        if (isDev) console.log("ANALYZE FAILED:", res.status);
-        alert("Analýza zlyhala");
+        const text = await res.text().catch(() => "");
+        console.log("ANALYZE FAILED:", res.status, text);
+        alert(`Analýza zlyhala (${res.status})`);
         return;
       }
+
 
       const data = await res.json();
       sessionStorage.setItem("shelfie_result", JSON.stringify(data));

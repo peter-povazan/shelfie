@@ -21,9 +21,7 @@ export type ArchetypeMeta = {
   description: string;
   theme: {
     // tailwind class pre background (aj s opacity)
-    bandBg: string;      // napr. "bg-red-500/50"
-    // voliteľne: border/shadow, ak chceš neskôr
-    bandBorder?: string; // napr. "border-2 border-[#9393bc]"
+    pageBg: string;      // napr. "bg-red-500/50"
     // cesta k webp pre archetyp (keď budeš mať)
     imageSrc?: string;   // napr. "/assets/archetypes/scifi.webp"
   };

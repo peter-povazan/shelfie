@@ -16,24 +16,21 @@ export type ArchetypeKey =
   | "Scifi"
   | "Poetik";
 
-export type ArchetypeMeta = {
-  title: string;
-  description: string;
-  theme: {
-    // tailwind class pre background (aj s opacity)
-    pageBg: string;      // napr. "bg-red-500/50"
-    // cesta k webp pre archetyp (keď budeš mať)
-    imageSrc?: string;   // napr. "/assets/archetypes/scifi.webp"
-  };
+type ArchetypeTheme = {
+  // Pozadie celej stránky: môže byť rgba(...) alebo aj linear-gradient(...)
+  pageBg: string;
+  // Cesta k WEBP / obrázku archetypu (zatiaľ fallbackuješ na home.webp)
+  imageSrc?: string;
 };
 
-export const ARCHETYPES: Record<ArchetypeKey, ArchetypeMeta> = {
+export const ARCHETYPES = {
   Bezkniznik: {
     title: "Bezknižník",
     description:
       "Na fotke nevidím knihy alebo čitateľné chrbty. Skús odfotiť poličku s knihami a lepším svetlom.",
     theme: {
-      pageBg: "rgba(255, 200, 170, 1)",
+      // #ffcaab (jemné pozadie)
+      pageBg: "rgba(255, 202, 171, 0.18)",
       imageSrc: "/assets/home.webp",
     },
   },
@@ -187,4 +184,13 @@ export const ARCHETYPES: Record<ArchetypeKey, ArchetypeMeta> = {
       imageSrc: "/assets/home.webp",
     },
   },
-};
+} satisfies Record<
+  ArchetypeKey,
+  {
+    title: string;
+    description: string;
+    theme: ArchetypeTheme;
+  }
+>;
+
+export type ArchetypeMeta = (typeof ARCHETYPES)[ArchetypeKey];

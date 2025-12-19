@@ -140,7 +140,7 @@ export default function Result2Page() {
   if (!result) return null;
 
   const copy = getCopy(result.archetype);
-  const pageBg = copy.theme.pageBg ?? "bg-white";
+  const pageBg = copy.theme.pageBg ?? "transparent";
   const archetypeImg = copy.theme.imageSrc ?? "/assets/home.webp";
 
   const cameraBtnClass = `

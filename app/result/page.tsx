@@ -179,7 +179,10 @@ export default function Result2Page() {
           <div
             ref={cardRef}
             className="relative w-full overflow-hidden"
-            style={{ aspectRatio: "9 / 16" }}
+            style={{
+              aspectRatio: "9 / 16",
+              backgroundColor: copy.theme.pageBg ?? "#ffffff", // ✅ toto je kľúč
+            }}
           >
             <div className="absolute inset-0">
               <div className="flex h-full flex-col px-4 pt-4 pb-5">
@@ -259,12 +262,12 @@ export default function Result2Page() {
                   )}
 
                   <div className="mt-3 text-center">
-                    <a
+                    <Link
                       href="/"
                       className="text-sm font-semibold text-slate-700 hover:text-slate-900"
                     >
                       Urobiť ďalšiu Shelfie →
-                    </a>
+                    </Link>
                   </div>
                 </div>
 

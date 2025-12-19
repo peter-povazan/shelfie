@@ -9,6 +9,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { compressImageFile } from "@/lib/compressImage";
 
 function ShelfieLogo() {
   const letter = "inline-block";
@@ -44,15 +45,23 @@ export default function Home() {
     };
   }, [previewUrl]);
 
-  function pick(f?: File, source?: "camera" | "gallery") {
+  async function pick(f?: File, source?: "camera" | "gallery") {
     if (!f) return;
     if (!f.type.startsWith("image/")) return;
 
     if (source) setLastSource(source);
 
+    // ⬇️ KOMPRESIA
+    const compressed = await compressImageFile(f, {
+      maxSide: 1600,
+      quality: 0.82,
+      mimeType: "image/jpeg",
+    });
+
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setFile(f);
-    setPreviewUrl(URL.createObjectURL(f));
+
+    setFile(compressed);
+    setPreviewUrl(URL.createObjectURL(compressed));
   }
 
   function openCamera() {
@@ -75,13 +84,23 @@ export default function Home() {
   }
 
   async function analyze() {
-    const mock = {
-      archetype: "Gamer",
-      description:
-        "Hľadáš napätie, tempo a svet, ktorý ťa vtiahne. Čítaš ako hráš: naplno.",
-    };
+    if (!file) return;
 
-    sessionStorage.setItem("shelfie_result", JSON.stringify(mock));
+    const fd = new FormData();
+    fd.append("image", file);
+
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      body: fd,
+    });
+
+    if (!res.ok) {
+      alert("Analýza zlyhala");
+      return;
+    }
+
+    const data = await res.json();
+    sessionStorage.setItem("shelfie_result", JSON.stringify(data));
     router.push("/result");
   }
 

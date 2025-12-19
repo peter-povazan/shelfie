@@ -31,6 +31,22 @@ function ArchetypeSVG({ archetype }: { archetype: string }) {
   );
 }
 
+function ShelfieLogo() {
+  const letter = "inline-block";
+  return (
+    <div className="text-2xl font-extrabold tracking-widest select-none">
+      <span className="text-slate-900">#</span>
+      <span className={`${letter} text-[#ea8d79]`}>S</span>
+      <span className={`${letter} text-[#18b1df]`}>H</span>
+      <span className={`${letter} text-[#7b9aba]`}>E</span>
+      <span className={`${letter} text-[#e6a87f]`}>L</span>
+      <span className={`${letter} text-[#ea8d79]`}>F</span>
+      <span className={`${letter} text-[#18b1df]`}>I</span>
+      <span className={`${letter} text-[#7b9aba]`}>E</span>
+    </div>
+  );
+}
+
 export default function ResultPage() {
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -122,9 +138,7 @@ export default function ResultPage() {
               <div className="flex h-full flex-col p-4">
                 {/* Top row */}
                 <div className="flex items-center justify-between">
-                  <div className="rounded-lg border-2 border-slate-900 px-3 py-1 text-xs font-semibold tracking-widest">
-                    SHELFIE
-                  </div>
+                  <ShelfieLogo />
                 </div>
 
                 {/* Title */}
@@ -168,27 +182,6 @@ export default function ResultPage() {
           </div>
 
           {shareError && <div className="mt-3 text-sm text-red-600">{shareError}</div>}
-        </section>
-
-        {/* PICKS */}
-        <section className="mt-8">
-          <div className="text-base font-semibold">Knihy pre teba</div>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {picks.slice(0, 6).map((b, idx) => (
-              <a
-                key={idx}
-                href={b.url}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-2xl border border-slate-200 bg-white p-3 hover:border-slate-400"
-              >
-                <div className="aspect-[3/4] w-full rounded-xl bg-slate-100" />
-                <div className="mt-2 text-sm font-semibold">{b.title}</div>
-                {b.author && <div className="mt-1 text-xs text-slate-600">{b.author}</div>}
-                <div className="mt-2 text-xs font-semibold">Pozrieť →</div>
-              </a>
-            ))}
-          </div>
         </section>
 
         {/* Footer links (outside card, like in your wireframes) */}

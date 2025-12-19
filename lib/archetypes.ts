@@ -30,7 +30,7 @@ export const ARCHETYPES = {
       "Na fotke nevidím knihy alebo čitateľné chrbty. Skús odfotiť poličku s knihami a lepším svetlom.",
     theme: {
       // #ffcaab (jemné pozadie)
-      pageBg: "rgba(255, 202, 171, 0.18)",
+      pageBg: "rgba(255, 202, 171, 1)",
       imageSrc: "/assets/home.webp",
     },
   },

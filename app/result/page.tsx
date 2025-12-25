@@ -268,7 +268,7 @@ export default function Result2Page() {
 
     const key = normalizeArchetypeKey(result.archetype);
     const meta = ARCHETYPES[key];
-    const list = meta.theme.imageSrcs ?? (meta.theme.imageSrc ? [meta.theme.imageSrc] : []);
+    const list = meta.theme.imageSrcs; // ✅ only this
     const count = list.length || 1;
 
     const idx = pickStableStickerForRun(key, count);
@@ -368,18 +368,14 @@ export default function Result2Page() {
   const key = normalizeArchetypeKey(result.archetype);
   const copy = getCopy(key);
 
-  // ✅ už bez defaultMotive(): motív berieme priamo z ARCHETYPES
-  const motive = copy.motif ?? "Čítanie po svojom";
-
+  const motive = copy.motif; // ✅ no defaultMotive anymore
   const insight =
     copy.insight ??
-    (copy.description.split(". ").slice(0, 1).join(". ").trim() +
-      (copy.description.includes(".") ? "." : ""));
+    (copy.description.split(". ").slice(0, 1).join(". ").trim() + (copy.description.includes(".") ? "." : ""));
 
-  const list = copy.theme.imageSrcs ?? (copy.theme.imageSrc ? [copy.theme.imageSrc] : []);
-  const archetypeImg = list.length
-    ? list[Math.min(stickerIndex, list.length - 1)]
-    : getArchetypeFallbackImageSrc();
+  const list = copy.theme.imageSrcs;
+  const archetypeImg =
+    list.length > 0 ? list[Math.min(stickerIndex, list.length - 1)] : getArchetypeFallbackImageSrc();
 
   const vibe = Math.max(1, Math.min(5, Math.round(result.vibe ?? (key === "Bezkniznik" ? 1 : 3))));
   const effectiveBg = pageBg ?? "#ffffff";
@@ -446,12 +442,7 @@ export default function Result2Page() {
                     {photo ? (
                       <img src={photo} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <img
-                        src="/assets/home.webp"
-                        alt=""
-                        className="h-full w-full object-contain"
-                        loading="eager"
-                      />
+                      <img src="/assets/home.webp" alt="" className="h-full w-full object-contain" loading="eager" />
                     )}
 
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/25 to-transparent" />
@@ -468,11 +459,17 @@ export default function Result2Page() {
                             </div>
                           </div>
 
+                          {/* ✅ motif label background = pageBg */}
                           <div
                             className="inline-flex rounded-[8px] px-3 py-2 shadow-sm backdrop-blur"
                             style={{ backgroundColor: copy.theme.pageBg }}
                           >
                             <div className={labelClass}>{motive}</div>
+                          </div>
+
+                          {/* ✅ debug (len pre test, môžeš potom zmazať) */}
+                          <div className="text-[11px] font-semibold text-white/80">
+                            {key} • {stickerIndex + 1}/{Math.max(1, list.length)} • {archetypeImg}
                           </div>
                         </div>
                       </div>
@@ -482,12 +479,7 @@ export default function Result2Page() {
                   {/* STICKER */}
                   <div className="absolute inset-x-0 top-full -translate-y-[85%] px-0">
                     <div className="h-56 w-full overflow-hidden">
-                      <img
-                        src={archetypeImg}
-                        alt=""
-                        className="h-full w-full object-contain"
-                        loading="eager"
-                      />
+                      <img src={archetypeImg} alt="" className="h-full w-full object-contain" loading="eager" />
                     </div>
                   </div>
                 </div>
@@ -501,9 +493,7 @@ export default function Result2Page() {
                     {copy.title}
                   </div>
 
-                  <div className="mt-2 text-base font-normal tracking-normal text-slate-700">
-                    {insight}
-                  </div>
+                  <div className="mt-2 text-base font-normal tracking-normal text-slate-700">{insight}</div>
                 </div>
 
                 <div data-no-export className="mt-6">

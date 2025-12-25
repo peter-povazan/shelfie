@@ -54,7 +54,7 @@ async function fileToDataUrl(file: File): Promise<string> {
 function AnalyzingLabel() {
   return (
     <span className="flex items-center justify-center gap-2">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" />
+      <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/60 border-t-white" />
       <span className="relative">
         ANALYZUJEM
         <span className="inline-flex w-6 justify-start">
@@ -255,7 +255,7 @@ export default function Home() {
   `;
 
   return (
-    <main className="min-h-screen bg-[#d1d4fa] text-slate-900">
+    <main className="min-h-screen bg-[#fbf5e9] text-slate-900">
       <div className="mx-auto flex w-full max-w-md flex-col px-5 py-6">
         <section>
           <div className="p-4">
@@ -263,14 +263,21 @@ export default function Home() {
               <ShelfieLogo />
             </div>
 
-            <div className="mt-6 text-2xl font-bold tracking-tight text-center">
-              Odfoť si poličku
-            </div>
-            <div className="mt-1 text-sm font-semibold text-slate-600 text-center">
-              a spoznaj svoj knihotyp
-            </div>
+<div className="mt-6 text-center">
+  <span className="inline-block bg-[#ffffff] px-2 py-1 rounded-[8px] text-2xl font-extrabold tracking-tight text-[#c88a5f]">
+    Čo prezradí tvoja knižnica?
+  </span>
+  <div className="mt-2 text-base font-normal tracking-normal text-slate-700">
+    Odfoť ju a zisti svoj knižný profil.
+  </div>
+</div>
 
-            <div className="relative mt-5 aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#9393bc]">
+            <div
+  className="relative mt-5 aspect-square w-full overflow-hidden rounded-xl border-2 border-[#dfd6ba]"
+  style={{
+    boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
+  }}
+>
               {previewUrl ? (
                 <>
                   <img
@@ -289,7 +296,7 @@ export default function Home() {
                 </>
               ) : (
                 <img
-                  src="/assets/home.webp"
+                  src="/assets/home3.webp"
                   alt=""
                   className="h-full w-full object-contain"
                   loading="eager"
@@ -327,7 +334,9 @@ export default function Home() {
                   ) : (
                     <>
                       <SparklesIcon className="h-8 w-8 stroke-[1.2]" />
-                      ZISTI MÔJ KNIHOTYP
+                      <span className="uppercase tracking-wide">
+                        Zistiť môj profil
+                      </span>
                     </>
                   )}
                 </button>

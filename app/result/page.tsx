@@ -223,15 +223,17 @@ export default function Result2Page() {
   const [result, setResult] = useState<ShelfieResult | null>(null);
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null); // blob: objectURL for UI
-  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null); // ✅ keep blob for export-safe dataURL
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null); // keep blob for export-safe dataURL
 
   const [isWorking, setIsWorking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const [pageBg, setPageBg] = useState<string | null>(null);
-  const [stickerIndex, setStickerIndex] = useState<number>(0);
 
-  // ✅ load result + photo blob from IndexedDB
+  // ✅ kľúč: žiadny default 0 -> zabránime prebliknutiu
+  const [stickerIndex, setStickerIndex] = useState<number | null>(null);
+
+  // ✅ load result + choose sticker IMMEDIATELY (same tick) + load photo blob
   useEffect(() => {
     let alive = true;
     let createdUrl: string | null = null;
@@ -250,7 +252,15 @@ export default function Result2Page() {
           return;
         }
         if (!alive) return;
+
+        // ✅ vyber sticker ešte pred prvým “reálnym” renderom
+        const key = normalizeArchetypeKey(parsed.archetype);
+        const list = ARCHETYPES[key].theme.imageSrcs ?? [];
+        const count = list.length || 1;
+        const idx = pickStableStickerForRun(key, count);
+
         setResult(parsed);
+        setStickerIndex(idx);
 
         try {
           const blob = await idbGetBlob("shelfie_photo_blob");
@@ -305,18 +315,6 @@ export default function Result2Page() {
     };
   }, [photoUrl]);
 
-  // choose sticker once per run + archetype
-  useEffect(() => {
-    if (!result) return;
-
-    const key = normalizeArchetypeKey(result.archetype);
-    const list = ARCHETYPES[key].theme.imageSrcs ?? [];
-    const count = list.length || 1;
-
-    const idx = pickStableStickerForRun(key, count);
-    setStickerIndex(idx);
-  }, [result]);
-
   // ✅ export-safe: temporarily swap blob: img to dataURL just for rendering to PNG
   async function makeCardPng(): Promise<{ dataUrl: string; file: File }> {
     if (!cardRef.current) throw new Error("Missing card ref");
@@ -334,7 +332,6 @@ export default function Result2Page() {
       el.style.visibility = "visible";
     });
 
-    // ✅ swap img src to dataURL (only in DOM clone phase we can’t, so do it on real node briefly)
     const imgEl = root.querySelector<HTMLImageElement>("[data-photo]");
     const prevSrc = imgEl?.src;
 
@@ -346,7 +343,6 @@ export default function Result2Page() {
       const dataUrl = await toPng(root, {
         cacheBust: true,
         pixelRatio: 2,
-        // imagePlaceholder helps when something fails to load in time
         imagePlaceholder:
           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9p0qkAAAAASUVORK5CYII=",
         filter: (node) => {
@@ -360,7 +356,6 @@ export default function Result2Page() {
       const file = new File([blob], "shelfie-story.png", { type: "image/png" });
       return { dataUrl, file };
     } finally {
-      // restore original src (blob:)
       if (imgEl && prevSrc) imgEl.src = prevSrc;
 
       prev.forEach(({ el, opacity, visibility }) => {
@@ -420,7 +415,8 @@ export default function Result2Page() {
     }
   }
 
-  if (!result) return null;
+  // ✅ kým nemáme aj stickerIndex, nerenderuj “hotový” layout (žiadny zlý prvý sticker)
+  if (!result || stickerIndex == null) return null;
 
   const key = normalizeArchetypeKey(result.archetype);
   const copy = getCopy(key);
@@ -505,12 +501,7 @@ export default function Result2Page() {
                   {/* FOTO */}
                   <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-50">
                     {photoUrl ? (
-                      <img
-                        data-photo // ✅ used for export swap
-                        src={photoUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
+                      <img data-photo src={photoUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <img
                         data-photo

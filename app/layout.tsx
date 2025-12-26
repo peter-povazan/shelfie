@@ -1,3 +1,4 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -13,17 +14,10 @@ export const metadata: Metadata = {
   description: "Scan your bookshelf. Discover your reading archetype.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="sk" className={inter.variable}>
-      <body className="font-sans antialiased">
-        {children}
-      </body>
+    <html lang="sk" className={inter.variable} suppressHydrationWarning>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
-

@@ -1,11 +1,16 @@
+// app/[locale]/result/page.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ARCHETYPES, type ArchetypeKey } from "@/lib/archetypes";
 import { ShareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { idbGetBlob, idbDel } from "@/lib/photoStore";
+import type { Locale } from "@/lib/i18n";
+import { t as ui } from "@/lib/dict";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 type ShelfieResult = {
   archetype: string;
@@ -68,9 +73,6 @@ function getArchetypeFallbackImageSrc() {
   return `/assets/home.webp`;
 }
 
-/* -----------------------------
-   Dominant hue → HSV(h, 12%, 95%) → RGB background
------------------------------- */
 function rgbToHsv(r: number, g: number, b: number) {
   const rr = r / 255;
   const gg = g / 255;
@@ -177,9 +179,6 @@ async function extractDominantHue(imgSrc: string): Promise<number | null> {
   }
 }
 
-/* -----------------------------
-   ✅ helper: Blob -> dataURL (len pre export)
------------------------------- */
 async function blobToDataUrl(blob: Blob): Promise<string> {
   return await new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -189,9 +188,6 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-/* -----------------------------
-   ✅ Random sticker per RESULT (stable), new random when you do new shelfie
------------------------------- */
 function getOrCreateRunId() {
   const k = "shelfie_run_id";
   const existing = sessionStorage.getItem(k);
@@ -217,23 +213,23 @@ function pickStableStickerForRun(archetypeKey: string, count: number) {
   return idx;
 }
 
-export default function Result2Page() {
+export default function ResultPage() {
+  const params = useParams<{ locale?: string }>();
+  const locale = (params?.locale as Locale) ?? "sk";
+  const U = ui(locale as any); // Locale union je rovnaký, len v inom súbore
+
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const [result, setResult] = useState<ShelfieResult | null>(null);
-
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null); // blob: objectURL for UI
-  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null); // keep blob for export-safe dataURL
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
 
   const [isWorking, setIsWorking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const [pageBg, setPageBg] = useState<string | null>(null);
-
-  // ✅ kľúč: žiadny default 0 -> zabránime prebliknutiu
   const [stickerIndex, setStickerIndex] = useState<number | null>(null);
 
-  // ✅ load result + choose sticker IMMEDIATELY (same tick) + load photo blob
   useEffect(() => {
     let alive = true;
     let createdUrl: string | null = null;
@@ -241,19 +237,18 @@ export default function Result2Page() {
     (async () => {
       const raw = sessionStorage.getItem("shelfie_result");
       if (!raw) {
-        window.location.href = "/";
+        window.location.href = `/${locale}`;
         return;
       }
 
       try {
         const parsed = JSON.parse(raw) as ShelfieResult;
         if (!parsed?.archetype) {
-          window.location.href = "/";
+          window.location.href = `/${locale}`;
           return;
         }
         if (!alive) return;
 
-        // ✅ vyber sticker ešte pred prvým “reálnym” renderom
         const key = normalizeArchetypeKey(parsed.archetype);
         const list = ARCHETYPES[key].theme.imageSrcs ?? [];
         const count = list.length || 1;
@@ -279,7 +274,7 @@ export default function Result2Page() {
           setPhotoUrl(null);
         }
       } catch {
-        window.location.href = "/";
+        window.location.href = `/${locale}`;
       }
     })();
 
@@ -287,9 +282,8 @@ export default function Result2Page() {
       alive = false;
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
-  }, []);
+  }, [locale]);
 
-  // background color from photo
   useEffect(() => {
     let alive = true;
 
@@ -315,7 +309,6 @@ export default function Result2Page() {
     };
   }, [photoUrl]);
 
-  // ✅ export-safe: temporarily swap blob: img to dataURL just for rendering to PNG
   async function makeCardPng(): Promise<{ dataUrl: string; file: File }> {
     if (!cardRef.current) throw new Error("Missing card ref");
     const root = cardRef.current;
@@ -380,7 +373,7 @@ export default function Result2Page() {
           title: "Shelfie",
           text: "#SHELFIE 📚",
         });
-        setToast("Pripravené na zdieľanie 👌");
+        setToast(U.shareReady);
         return;
       }
 
@@ -388,9 +381,9 @@ export default function Result2Page() {
       a.href = dataUrl;
       a.download = "shelfie-story.png";
       a.click();
-      setToast("Stiahnuté ako PNG ✅");
+      setToast(U.downloaded);
     } catch {
-      setToast("Nepodarilo sa pripraviť obrázok. Skús znova.");
+      setToast(U.exportFail);
     } finally {
       setIsWorking(false);
     }
@@ -407,15 +400,14 @@ export default function Result2Page() {
       a.href = dataUrl;
       a.download = "shelfie-story.png";
       a.click();
-      setToast("Stiahnuté ako PNG ✅");
+      setToast(U.downloaded);
     } catch {
-      setToast("Nepodarilo sa stiahnuť obrázok. Skús znova.");
+      setToast(U.downloadFail);
     } finally {
       setIsWorking(false);
     }
   }
 
-  // ✅ kým nemáme aj stickerIndex, nerenderuj “hotový” layout (žiadny zlý prvý sticker)
   if (!result || stickerIndex == null) return null;
 
   const key = normalizeArchetypeKey(result.archetype);
@@ -424,14 +416,10 @@ export default function Result2Page() {
   const motive = copy.motif;
   const insight =
     copy.insight ??
-    (copy.description.split(". ").slice(0, 1).join(". ").trim() +
-      (copy.description.includes(".") ? "." : ""));
+    (copy.description.split(". ").slice(0, 1).join(". ").trim() + (copy.description.includes(".") ? "." : ""));
 
   const list = copy.theme.imageSrcs ?? [];
-  const archetypeImg =
-    list.length > 0
-      ? list[Math.min(stickerIndex, list.length - 1)]
-      : getArchetypeFallbackImageSrc();
+  const archetypeImg = list.length > 0 ? list[Math.min(stickerIndex, list.length - 1)] : getArchetypeFallbackImageSrc();
 
   const vibe = Math.max(1, Math.min(5, Math.round(result.vibe ?? (key === "Bezkniznik" ? 1 : 3))));
   const effectiveBg = pageBg ?? "#ffffff";
@@ -467,9 +455,7 @@ export default function Result2Page() {
     sessionStorage.removeItem("shelfie_run_id");
     try {
       await idbDel("shelfie_photo_blob");
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   return (
@@ -483,14 +469,7 @@ export default function Result2Page() {
 
       <div className="mx-auto w-full max-w-md px-5 py-6">
         <section>
-          <div
-            ref={cardRef}
-            className="relative w-full overflow-hidden"
-            style={{
-              aspectRatio: "9 / 16",
-              backgroundColor: effectiveBg,
-            }}
-          >
+          <div ref={cardRef} className="relative w-full overflow-hidden" style={{ aspectRatio: "9 / 16", backgroundColor: effectiveBg }}>
             <div className="absolute inset-0">
               <div className="flex h-full flex-col px-4 pb-5">
                 <div className="flex items-center justify-center">
@@ -498,18 +477,11 @@ export default function Result2Page() {
                 </div>
 
                 <div className="relative mt-4">
-                  {/* FOTO */}
                   <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-50">
                     {photoUrl ? (
                       <img data-photo src={photoUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <img
-                        data-photo
-                        src="/assets/home.webp"
-                        alt=""
-                        className="h-full w-full object-contain"
-                        loading="eager"
-                      />
+                      <img data-photo src="/assets/home.webp" alt="" className="h-full w-full object-contain" loading="eager" />
                     )}
 
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/25 to-transparent" />
@@ -526,10 +498,7 @@ export default function Result2Page() {
                             </div>
                           </div>
 
-                          <div
-                            className="inline-flex rounded-[8px] px-3 py-2 shadow-sm backdrop-blur"
-                            style={{ backgroundColor: copy.theme.pageBg }}
-                          >
+                          <div className="inline-flex rounded-[8px] px-3 py-2 shadow-sm backdrop-blur" style={{ backgroundColor: copy.theme.pageBg }}>
                             <div className={labelClass}>{motive}</div>
                           </div>
                         </div>
@@ -537,7 +506,6 @@ export default function Result2Page() {
                     </div>
                   </div>
 
-                  {/* STICKER */}
                   <div className="absolute inset-x-0 top-full -translate-y-[85%] px-0">
                     <div className="h-56 w-full overflow-hidden">
                       <img src={archetypeImg} alt="" className="h-full w-full object-contain" loading="eager" />
@@ -545,12 +513,8 @@ export default function Result2Page() {
                   </div>
                 </div>
 
-                {/* DOLE */}
                 <div className="mt-10 text-center">
-                  <div
-                    className="inline-block rounded-[8px] bg-slate-100 px-2 py-1 text-2xl font-extrabold tracking-wide"
-                    style={{ color: archetypeColor }}
-                  >
+                  <div className="inline-block rounded-[8px] bg-slate-100 px-2 py-1 text-2xl font-extrabold tracking-wide" style={{ color: archetypeColor }}>
                     {copy.title}
                   </div>
 
@@ -561,12 +525,12 @@ export default function Result2Page() {
                   <div className="grid grid-cols-2 gap-3">
                     <button onClick={share} disabled={isWorking} className={cameraBtnClass}>
                       <ShareIcon className="h-7 w-7 stroke-[2]" />
-                      {isWorking ? "Pripravujem…" : "Zdieľať"}
+                      {isWorking ? U.preparing : U.share}
                     </button>
 
                     <button onClick={download} disabled={isWorking} className={galleryBtnClass}>
                       <ArrowDownTrayIcon className="h-7 w-7 stroke-[2]" />
-                      Stiahnuť
+                      {U.download}
                     </button>
                   </div>
 
@@ -574,11 +538,11 @@ export default function Result2Page() {
 
                   <div className="mt-3 text-center">
                     <Link
-                      href="/"
+                      href={`/${locale}`}
                       onClick={resetForNextShelfie}
                       className="text-sm font-semibold text-slate-700 hover:text-slate-900"
                     >
-                      Urobiť ďalšiu Shelfie →
+                      {U.next}
                     </Link>
                   </div>
                 </div>
@@ -587,7 +551,6 @@ export default function Result2Page() {
               </div>
             </div>
 
-            {/* EXPORT-ONLY watermark */}
             <div data-export-only className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-6">
               <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white/70 to-transparent" />
               <div className="relative flex items-center justify-between text-[11px] font-extrabold tracking-wider text-slate-900/80">
@@ -600,18 +563,21 @@ export default function Result2Page() {
 
         <footer className="mt-8 text-center text-sm text-slate-600">
           <div>
-            <Link className="hover:text-slate-900" href="/o-projekte">
-              O projekte
+            <Link className="hover:text-slate-900" href={`/${locale}/o-projekte`}>
+              {U.about}
             </Link>
             <span className="mx-2">|</span>
-            <Link className="hover:text-slate-900" href="/sukromie">
-              Súkromie
+            <Link className="hover:text-slate-900" href={`/${locale}/sukromie`}>
+              {U.privacy}
             </Link>
             <span className="mx-2">|</span>
-            <Link className="hover:text-slate-900" href="/podmienky">
-              Podmienky
+            <Link className="hover:text-slate-900" href={`/${locale}/podmienky`}>
+              {U.terms}
             </Link>
           </div>
+
+          {/* Language switcher */}
+          <LocaleSwitcher />
 
           <div className="mt-2 text-xs text-slate-500">© 2026 Albatros Media Slovakia s.r.o.</div>
         </footer>

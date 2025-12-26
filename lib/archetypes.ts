@@ -30,7 +30,7 @@ export type ArchetypeTheme = {
 
 export const ARCHETYPES = {
   Bezkniznik: {
-    title: "Bez kníh",
+    title: "Prázdna knižnica",
     motif: "Žiadne knihy na dohľad",
     insight: "Tvoje príbehy na teba zatiaľ čakajú.",
     description:
@@ -43,7 +43,7 @@ export const ARCHETYPES = {
 
   Manga: {
     title: "Manga",
-    motif: "Série & vizuálne príbehy",
+    motif: "Série a vizuálne príbehy",
     insight: "Príbeh v obrazoch je tvoj jazyk — série a postavy sú návykové.",
     description:
       "Príbeh v obrazoch je tvoj jazyk. Miluješ série, postavy a svety, ktoré rastú diel po diele.",
@@ -54,8 +54,8 @@ export const ARCHETYPES = {
   },
 
   Gamer: {
-    title: "Gamer",
-    motif: "Lore & herné univerzá",
+    title: "Čitateľ herných svetov",
+    motif: "Lore a herné univerzá",
     insight: "Herný príbeh a lore ťa bavia rovnako ako samotné hranie.",
     description:
       "Herné svety, lore a univerzá ťa bavia rovnako ako hranie. Si doma v RPG, mapách a príbehoch z hier.",
@@ -67,7 +67,7 @@ export const ARCHETYPES = {
 
   Fantasta: {
     title: "Fantasta",
-    motif: "Fantázia & mágia",
+    motif: "Fantázia a mágia",
     insight: "Únik do iných svetov je tvoj druhý domov.",
     description:
       "Únik do iných svetov je tvoj druhý domov. Fantázia, mágia a predstavivosť sú tvoja sila.",
@@ -78,8 +78,8 @@ export const ARCHETYPES = {
   },
 
   Scifi: {
-    title: "Vizionár",
-    motif: "Budúcnosť & technológie",
+    title: "Vizionársky čitateľ",
+    motif: "Budúcnosť a technológie",
     insight: "Premýšľaš dopredu — fascinuje ťa, kam smerujeme.",
     description:
       "Premýšľaš dopredu. Fascinuje ťa budúcnosť, technológie a otázky, kam smerujeme.",
@@ -91,7 +91,7 @@ export const ARCHETYPES = {
 
   Detektiv: {
     title: "Detektív",
-    motif: "Záhady & zvraty",
+    motif: "Záhady a zvraty",
     insight: "Baví ťa hľadať pravdu medzi riadkami.",
     description: "Baví ťa hľadať pravdu medzi riadkami. Napätie, záhady a zvraty sú tvoj svet.",
     theme: {
@@ -101,8 +101,8 @@ export const ARCHETYPES = {
   },
 
   Horor: {
-    title: "Hororista",
-    motif: "Temno & mrazenie",
+    title: "Temný čitateľ",
+    motif: "Temno a mrazenie",
     insight: "Mrazenie v chrbte je tvoj guilty pleasure — čítaš aj po tme.",
     description:
       "Baví ťa mrazenie v chrbte, temná atmosféra a napätie, ktoré sa nedá odložiť. Čítaš aj po tme.",
@@ -113,8 +113,8 @@ export const ARCHETYPES = {
   },
 
   Akcny: {
-    title: "Akčný čitateľ",
-    motif: "Tempo & adrenalín",
+    title: "Čitateľ v tempe",
+    motif: "Akcia a adrenalín",
     insight: "Keď kniha chytí, ideš bez prestávky až do konca.",
     description:
       "Máš rád tempo, napätie a silný dej. Keď kniha chytí, ideš bez prestávky až do konca.",
@@ -126,7 +126,7 @@ export const ARCHETYPES = {
 
   Romantik: {
     title: "Romantik",
-    motif: "Emócie & vzťahy",
+    motif: "Emócie a vzťahy",
     insight: "Čítanie je pre teba zážitok srdca — hľadáš emócie a blízkosť.",
     description: "Hľadáš emócie, vzťahy a silné ľudské príbehy. Čítanie je pre teba zážitok srdca.",
     theme: {
@@ -137,7 +137,7 @@ export const ARCHETYPES = {
 
   Poetik: {
     title: "Poetik",
-    motif: "Jazyk & atmosféra",
+    motif: "Jazyk a atmosféra",
     insight: "Čítaš pre krásu slov a ticho medzi nimi.",
     description: "Záleží ti na jazyku, atmosfére a emócii. Čítaš pre krásu slov a ticha medzi nimi.",
     theme: {
@@ -148,7 +148,7 @@ export const ARCHETYPES = {
 
   Motivator: {
     title: "Motivátor",
-    motif: "Rast & návyky",
+    motif: "Rast a návyky",
     insight: "Knihy berieš ako impulz — chceš sa posúvať a rásť.",
     description: "Knihy berieš ako impulz k lepšiemu životu. Rád na sebe pracuješ a posúvaš sa ďalej.",
     theme: {
@@ -158,8 +158,8 @@ export const ARCHETYPES = {
   },
 
   Biznis: {
-    title: "Biznis",
-    motif: "Stratégia & rozhodovanie",
+    title: "Strategický čitateľ",
+    motif: "Stratégia a rozhodovanie",
     insight: "Čítaš strategicky — baví ťa úspech, systém a rozhodovanie.",
     description: "Čítaš strategicky. Zaujíma ťa úspech, rozhodovanie a fungovanie sveta okolo nás.",
     theme: {
@@ -169,8 +169,8 @@ export const ARCHETYPES = {
   },
 
   Intelektual: {
-    title: "Intelektuál",
-    motif: "Poznanie & súvislosti",
+    title: "Hĺbavý čitateľ",
+    motif: "Poznanie a súvislosti",
     insight: "Čítaš, aby si videl súvislosti — ideš do hĺbky.",
     description:
       "Baví ťa chápať svet do hĺbky. Non-fiction, veda, história či filozofia – čítaš, aby si videl súvislosti.",
@@ -181,10 +181,10 @@ export const ARCHETYPES = {
   },
 
   Rodic: {
-    title: "Rodič",
-    motif: "Deti & spoločný čas",
-    insight: "Knihy sú pre teba aj mostom k deťom — pre seba aj spolu.",
-    description: "Knihy sú pre teba aj mostom k deťom. Čítaš pre seba, aj pre spoločné chvíle.",
+    title: "Rodič a dieťa",
+    motif: "Deti a spoločný čas",
+    insight: "Knihy sú tu pre spoločné čítanie — zdieľané príbehy, ktoré spájajú deti aj dospelých.",
+    description: "Knihy sú tu pre spoločné čítanie — zdieľané príbehy, ktoré spájajú deti aj dospelých.",
     theme: {
       pageBg: "rgba(255, 255, 255, 1)",
       imageSrcs: ["/assets/rodic1.webp", "/assets/rodic2.webp", "/assets/rodic3.webp"],
@@ -193,7 +193,7 @@ export const ARCHETYPES = {
 
   Cestovatel: {
     title: "Cestovateľ",
-    motif: "Svet & kultúry",
+    motif: "Svet a kultúry",
     insight: "Každá kniha je pre teba cesta — miesta, ľudia, kultúry.",
     description: "Každá kniha je pre teba cesta. Zaujíma ťa miesta, kultúry a skutočné príbehy sveta.",
     theme: {
@@ -204,7 +204,7 @@ export const ARCHETYPES = {
 
   Dobrodruh: {
     title: "Dobrodruh",
-    motif: "Pohyb & objavovanie",
+    motif: "Pohyb a objavovanie",
     insight: "Láka ťa neznámo — knihy sú výprava za hranice istoty.",
     description: "Láka ťa pohyb, objavovanie a neznámo. Knihy sú pre teba výpravou za hranice istoty.",
     theme: {
@@ -215,7 +215,7 @@ export const ARCHETYPES = {
 
   Labuznik: {
     title: "Labužník",
-    motif: "Vychutnávanie & pohoda",
+    motif: "Vychutnávanie a pohoda",
     insight: "Čítaš pomaly a s chuťou — príbeh si vychutnávaš.",
     description: "Čítaš pomaly a s chuťou. Každý príbeh si vychutnávaš ako dobré jedlo.",
     theme: {
@@ -226,7 +226,7 @@ export const ARCHETYPES = {
 
   Vsehochut: {
     title: "Všehochuť",
-    motif: "Pestrosť & zvedavosť",
+    motif: "Pestrosť a zvedavosť",
     insight: "Neviažeš sa na jeden žáner — baví ťa pestrosť a mix.",
     description:
       "Máš chuť na všetko – od príbehov po fakty. Neviažeš sa na jeden žáner, baví ťa pestrosť.",

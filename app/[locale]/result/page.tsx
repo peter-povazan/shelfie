@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ARCHETYPES, type ArchetypeKey } from "@/lib/archetypes";
 import { ShareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { idbGetBlob, idbDel } from "@/lib/photoStore";
 import type { Locale } from "@/lib/i18n";
 import { t as ui } from "@/lib/dict";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import { ARCHETYPE_COPY } from "@/lib/archetypesCopy";
+import type { ArchetypeKey } from "@/lib/archetypes";
 
 type ShelfieResult = {
   archetype: string;
@@ -60,13 +61,8 @@ function StarsCompact({ value }: { value: number }) {
 }
 
 function normalizeArchetypeKey(archetype: string): ArchetypeKey {
-  if (archetype in ARCHETYPES) return archetype as ArchetypeKey;
+  if (archetype && archetype in ARCHETYPE_COPY.sk) return archetype as ArchetypeKey;
   return "Bezkniznik";
-}
-
-function getCopy(archetype: string) {
-  const key = normalizeArchetypeKey(archetype);
-  return ARCHETYPES[key];
 }
 
 function getArchetypeFallbackImageSrc() {
@@ -216,7 +212,7 @@ function pickStableStickerForRun(archetypeKey: string, count: number) {
 export default function ResultPage() {
   const params = useParams<{ locale?: string }>();
   const locale = (params?.locale as Locale) ?? "sk";
-  const U = ui(locale as any); // Locale union je rovnaký, len v inom súbore
+  const U = ui(locale as any);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -250,7 +246,7 @@ export default function ResultPage() {
         if (!alive) return;
 
         const key = normalizeArchetypeKey(parsed.archetype);
-        const list = ARCHETYPES[key].theme.imageSrcs ?? [];
+        const list = ARCHETYPE_COPY.sk[key].theme.imageSrcs ?? [];
         const count = list.length || 1;
         const idx = pickStableStickerForRun(key, count);
 
@@ -411,7 +407,7 @@ export default function ResultPage() {
   if (!result || stickerIndex == null) return null;
 
   const key = normalizeArchetypeKey(result.archetype);
-  const copy = getCopy(key);
+  const copy = ARCHETYPE_COPY[locale]?.[key] ?? ARCHETYPE_COPY.sk[key];
 
   const motive = copy.motif;
   const insight =
@@ -419,7 +415,8 @@ export default function ResultPage() {
     (copy.description.split(". ").slice(0, 1).join(". ").trim() + (copy.description.includes(".") ? "." : ""));
 
   const list = copy.theme.imageSrcs ?? [];
-  const archetypeImg = list.length > 0 ? list[Math.min(stickerIndex, list.length - 1)] : getArchetypeFallbackImageSrc();
+  const archetypeImg =
+    list.length > 0 ? list[Math.min(stickerIndex, list.length - 1)] : getArchetypeFallbackImageSrc();
 
   const vibe = Math.max(1, Math.min(5, Math.round(result.vibe ?? (key === "Bezkniznik" ? 1 : 3))));
   const effectiveBg = pageBg ?? "#ffffff";
@@ -469,7 +466,11 @@ export default function ResultPage() {
 
       <div className="mx-auto w-full max-w-md px-5 py-6">
         <section>
-          <div ref={cardRef} className="relative w-full overflow-hidden" style={{ aspectRatio: "9 / 16", backgroundColor: effectiveBg }}>
+          <div
+            ref={cardRef}
+            className="relative w-full overflow-hidden"
+            style={{ aspectRatio: "9 / 16", backgroundColor: effectiveBg }}
+          >
             <div className="absolute inset-0">
               <div className="flex h-full flex-col px-4 pb-5">
                 <div className="flex items-center justify-center">
@@ -481,7 +482,13 @@ export default function ResultPage() {
                     {photoUrl ? (
                       <img data-photo src={photoUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <img data-photo src="/assets/home.webp" alt="" className="h-full w-full object-contain" loading="eager" />
+                      <img
+                        data-photo
+                        src="/assets/home.webp"
+                        alt=""
+                        className="h-full w-full object-contain"
+                        loading="eager"
+                      />
                     )}
 
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/25 to-transparent" />
@@ -498,7 +505,10 @@ export default function ResultPage() {
                             </div>
                           </div>
 
-                          <div className="inline-flex rounded-[8px] px-3 py-2 shadow-sm backdrop-blur" style={{ backgroundColor: copy.theme.pageBg }}>
+                          <div
+                            className="inline-flex rounded-[8px] px-3 py-2 shadow-sm backdrop-blur"
+                            style={{ backgroundColor: copy.theme.pageBg }}
+                          >
                             <div className={labelClass}>{motive}</div>
                           </div>
                         </div>
@@ -514,7 +524,10 @@ export default function ResultPage() {
                 </div>
 
                 <div className="mt-10 text-center">
-                  <div className="inline-block rounded-[8px] bg-slate-100 px-2 py-1 text-2xl font-extrabold tracking-wide" style={{ color: archetypeColor }}>
+                  <div
+                    className="inline-block rounded-[8px] bg-slate-100 px-2 py-1 text-2xl font-extrabold tracking-wide"
+                    style={{ color: archetypeColor }}
+                  >
                     {copy.title}
                   </div>
 
@@ -576,7 +589,6 @@ export default function ResultPage() {
             </Link>
           </div>
 
-          {/* Language switcher */}
           <LocaleSwitcher />
 
           <div className="mt-2 text-xs text-slate-500">© 2026 Albatros Media Slovakia s.r.o.</div>

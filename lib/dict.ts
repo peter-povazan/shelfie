@@ -1,5 +1,6 @@
 // lib/dict.ts
 import type { Locale } from "@/lib/i18n";
+export type { Locale } from "@/lib/i18n";
 
 export const UI = {
   sk: {
@@ -25,6 +26,9 @@ export const UI = {
     downloaded: "Stiahnuté ako PNG ✅",
     exportFail: "Nepodarilo sa pripraviť obrázok. Skús znova.",
     downloadFail: "Nepodarilo sa stiahnuť obrázok. Skús znova.",
+
+    // (ak máš switcher)
+    language: "Jazyk",
   },
 
   cz: {
@@ -50,6 +54,8 @@ export const UI = {
     downloaded: "Staženo jako PNG ✅",
     exportFail: "Nepodařilo se připravit obrázek. Zkus to znovu.",
     downloadFail: "Nepodařilo se stáhnout obrázek. Zkus to znovu.",
+
+    language: "Jazyk",
   },
 
   en: {
@@ -75,6 +81,8 @@ export const UI = {
     downloaded: "Downloaded as PNG ✅",
     exportFail: "Couldn’t prepare the image. Try again.",
     downloadFail: "Couldn’t download the image. Try again.",
+
+    language: "Language",
   },
 } as const;
 

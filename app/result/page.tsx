@@ -5,6 +5,7 @@ import { toPng } from "html-to-image";
 import Link from "next/link";
 import { ARCHETYPES, type ArchetypeKey } from "@/lib/archetypes";
 import { ShareIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { idbGetBlob, idbDel } from "@/lib/photoStore";
 
 type ShelfieResult = {
   archetype: string;
@@ -63,7 +64,6 @@ function getCopy(archetype: string) {
   return ARCHETYPES[key];
 }
 
-/** fallback, keby neboli assety */
 function getArchetypeFallbackImageSrc() {
   return `/assets/home.webp`;
 }
@@ -118,11 +118,11 @@ function hsvToRgb(h: number, s: number, v: number) {
   };
 }
 
-async function extractDominantHue(dataUrl: string): Promise<number | null> {
+async function extractDominantHue(imgSrc: string): Promise<number | null> {
   try {
     const img = new Image();
     img.decoding = "async";
-    img.src = dataUrl;
+    img.src = imgSrc;
 
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
@@ -178,6 +178,18 @@ async function extractDominantHue(dataUrl: string): Promise<number | null> {
 }
 
 /* -----------------------------
+   ✅ helper: Blob -> dataURL (len pre export)
+------------------------------ */
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error("Failed to read blob"));
+    r.readAsDataURL(blob);
+  });
+}
+
+/* -----------------------------
    ✅ Random sticker per RESULT (stable), new random when you do new shelfie
 ------------------------------ */
 function getOrCreateRunId() {
@@ -209,31 +221,62 @@ export default function Result2Page() {
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const [result, setResult] = useState<ShelfieResult | null>(null);
-  const [photo, setPhoto] = useState<string | null>(null);
+
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null); // blob: objectURL for UI
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null); // ✅ keep blob for export-safe dataURL
+
   const [isWorking, setIsWorking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const [pageBg, setPageBg] = useState<string | null>(null);
   const [stickerIndex, setStickerIndex] = useState<number>(0);
 
+  // ✅ load result + photo blob from IndexedDB
   useEffect(() => {
-    const raw = sessionStorage.getItem("shelfie_result");
-    const p = sessionStorage.getItem("shelfie_photo");
-    if (!raw) {
-      window.location.href = "/";
-      return;
-    }
-    try {
-      const parsed = JSON.parse(raw) as ShelfieResult;
-      if (!parsed?.archetype) {
+    let alive = true;
+    let createdUrl: string | null = null;
+
+    (async () => {
+      const raw = sessionStorage.getItem("shelfie_result");
+      if (!raw) {
         window.location.href = "/";
         return;
       }
-      setResult(parsed);
-      if (p) setPhoto(p);
-    } catch {
-      window.location.href = "/";
-    }
+
+      try {
+        const parsed = JSON.parse(raw) as ShelfieResult;
+        if (!parsed?.archetype) {
+          window.location.href = "/";
+          return;
+        }
+        if (!alive) return;
+        setResult(parsed);
+
+        try {
+          const blob = await idbGetBlob("shelfie_photo_blob");
+          if (!alive) return;
+
+          setPhotoBlob(blob);
+
+          if (blob) {
+            createdUrl = URL.createObjectURL(blob);
+            setPhotoUrl(createdUrl);
+          } else {
+            setPhotoUrl(null);
+          }
+        } catch {
+          setPhotoBlob(null);
+          setPhotoUrl(null);
+        }
+      } catch {
+        window.location.href = "/";
+      }
+    })();
+
+    return () => {
+      alive = false;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
   }, []);
 
   // background color from photo
@@ -241,11 +284,11 @@ export default function Result2Page() {
     let alive = true;
 
     (async () => {
-      if (!photo) {
+      if (!photoUrl) {
         setPageBg(null);
         return;
       }
-      const hue = await extractDominantHue(photo);
+      const hue = await extractDominantHue(photoUrl);
       if (!alive) return;
 
       if (hue == null) {
@@ -260,21 +303,21 @@ export default function Result2Page() {
     return () => {
       alive = false;
     };
-  }, [photo]);
+  }, [photoUrl]);
 
-  // ✅ choose sticker once per run + archetype
+  // choose sticker once per run + archetype
   useEffect(() => {
     if (!result) return;
 
     const key = normalizeArchetypeKey(result.archetype);
-    const meta = ARCHETYPES[key];
-    const list = meta.theme.imageSrcs; // ✅ only this
+    const list = ARCHETYPES[key].theme.imageSrcs ?? [];
     const count = list.length || 1;
 
     const idx = pickStableStickerForRun(key, count);
     setStickerIndex(idx);
   }, [result]);
 
+  // ✅ export-safe: temporarily swap blob: img to dataURL just for rendering to PNG
   async function makeCardPng(): Promise<{ dataUrl: string; file: File }> {
     if (!cardRef.current) throw new Error("Missing card ref");
     const root = cardRef.current;
@@ -291,10 +334,21 @@ export default function Result2Page() {
       el.style.visibility = "visible";
     });
 
+    // ✅ swap img src to dataURL (only in DOM clone phase we can’t, so do it on real node briefly)
+    const imgEl = root.querySelector<HTMLImageElement>("[data-photo]");
+    const prevSrc = imgEl?.src;
+
     try {
+      if (imgEl && photoBlob) {
+        imgEl.src = await blobToDataUrl(photoBlob);
+      }
+
       const dataUrl = await toPng(root, {
         cacheBust: true,
         pixelRatio: 2,
+        // imagePlaceholder helps when something fails to load in time
+        imagePlaceholder:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9p0qkAAAAASUVORK5CYII=",
         filter: (node) => {
           if (!(node instanceof HTMLElement)) return true;
           if (node.hasAttribute("data-no-export")) return false;
@@ -306,6 +360,9 @@ export default function Result2Page() {
       const file = new File([blob], "shelfie-story.png", { type: "image/png" });
       return { dataUrl, file };
     } finally {
+      // restore original src (blob:)
+      if (imgEl && prevSrc) imgEl.src = prevSrc;
+
       prev.forEach(({ el, opacity, visibility }) => {
         el.style.opacity = opacity;
         el.style.visibility = visibility;
@@ -368,14 +425,17 @@ export default function Result2Page() {
   const key = normalizeArchetypeKey(result.archetype);
   const copy = getCopy(key);
 
-  const motive = copy.motif; // ✅ no defaultMotive anymore
+  const motive = copy.motif;
   const insight =
     copy.insight ??
-    (copy.description.split(". ").slice(0, 1).join(". ").trim() + (copy.description.includes(".") ? "." : ""));
+    (copy.description.split(". ").slice(0, 1).join(". ").trim() +
+      (copy.description.includes(".") ? "." : ""));
 
-  const list = copy.theme.imageSrcs;
+  const list = copy.theme.imageSrcs ?? [];
   const archetypeImg =
-    list.length > 0 ? list[Math.min(stickerIndex, list.length - 1)] : getArchetypeFallbackImageSrc();
+    list.length > 0
+      ? list[Math.min(stickerIndex, list.length - 1)]
+      : getArchetypeFallbackImageSrc();
 
   const vibe = Math.max(1, Math.min(5, Math.round(result.vibe ?? (key === "Bezkniznik" ? 1 : 3))));
   const effectiveBg = pageBg ?? "#ffffff";
@@ -407,8 +467,13 @@ export default function Result2Page() {
 
   const labelClass = "text-[10px] font-extrabold uppercase tracking-wider italic text-white/95";
 
-  function resetForNextShelfie() {
+  async function resetForNextShelfie() {
     sessionStorage.removeItem("shelfie_run_id");
+    try {
+      await idbDel("shelfie_photo_blob");
+    } catch {
+      // ignore
+    }
   }
 
   return (
@@ -439,10 +504,21 @@ export default function Result2Page() {
                 <div className="relative mt-4">
                   {/* FOTO */}
                   <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-50">
-                    {photo ? (
-                      <img src={photo} alt="" className="h-full w-full object-cover" />
+                    {photoUrl ? (
+                      <img
+                        data-photo // ✅ used for export swap
+                        src={photoUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
-                      <img src="/assets/home.webp" alt="" className="h-full w-full object-contain" loading="eager" />
+                      <img
+                        data-photo
+                        src="/assets/home.webp"
+                        alt=""
+                        className="h-full w-full object-contain"
+                        loading="eager"
+                      />
                     )}
 
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/25 to-transparent" />
@@ -459,17 +535,11 @@ export default function Result2Page() {
                             </div>
                           </div>
 
-                          {/* ✅ motif label background = pageBg */}
                           <div
                             className="inline-flex rounded-[8px] px-3 py-2 shadow-sm backdrop-blur"
                             style={{ backgroundColor: copy.theme.pageBg }}
                           >
                             <div className={labelClass}>{motive}</div>
-                          </div>
-
-                          {/* ✅ debug (len pre test, môžeš potom zmazať) */}
-                          <div className="text-[11px] font-semibold text-white/80">
-                            {key} • {stickerIndex + 1}/{Math.max(1, list.length)} • {archetypeImg}
                           </div>
                         </div>
                       </div>

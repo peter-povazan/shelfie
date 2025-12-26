@@ -2,14 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  CameraIcon,
-  PhotoIcon,
-  ArrowPathIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/outline";
+import { CameraIcon, PhotoIcon, ArrowPathIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { compressImageFile } from "@/lib/compressImage";
+import { idbSetBlob, idbDel } from "@/lib/photoStore"; // ✅
 
 function ShelfieLogo() {
   const letter = "inline-block";
@@ -42,15 +38,6 @@ async function getImageDims(file: File): Promise<{ width: number; height: number
   }
 }
 
-async function fileToDataUrl(file: File): Promise<string> {
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsDataURL(file);
-  });
-}
-
 function AnalyzingLabel() {
   return (
     <span className="flex items-center justify-center gap-2">
@@ -59,12 +46,8 @@ function AnalyzingLabel() {
         ANALYZUJEM
         <span className="inline-flex w-6 justify-start">
           <span className="animate-[dot_1.2s_infinite]">.</span>
-          <span className="animate-[dot_1.2s_infinite] [animation-delay:0.2s]">
-            .
-          </span>
-          <span className="animate-[dot_1.2s_infinite] [animation-delay:0.4s]">
-            .
-          </span>
+          <span className="animate-[dot_1.2s_infinite] [animation-delay:0.2s]">.</span>
+          <span className="animate-[dot_1.2s_infinite] [animation-delay:0.4s]">.</span>
         </span>
       </span>
 
@@ -114,11 +97,7 @@ export default function Home() {
     if (source) setLastSource(source);
 
     if (isDev) {
-      console.log("ORIGINAL:", {
-        type: f.type,
-        sizeKB: Math.round(f.size / 1024),
-        name: f.name,
-      });
+      console.log("ORIGINAL:", { type: f.type, sizeKB: Math.round(f.size / 1024), name: f.name });
     }
 
     let out: File = f;
@@ -143,14 +122,13 @@ export default function Home() {
       });
     }
 
-    // ✅ uložiť do sessionStorage pre share kartu (Result)
-    // (dataURL je bezpečné pre html-to-image, žiadne CORS)
+    // ✅ uložiť blob do IndexedDB (namiesto dataURL v sessionStorage)
     try {
-      const dataUrl = await fileToDataUrl(out);
-      sessionStorage.setItem("shelfie_photo", dataUrl);
-    } catch (e) {
-      if (isDev) console.warn("Failed to store shelfie_photo", e);
+      await idbSetBlob("shelfie_photo_blob", out);
+      // (voliteľné) starý kľúč už netreba
       sessionStorage.removeItem("shelfie_photo");
+    } catch (e) {
+      if (isDev) console.warn("Failed to store photo in IndexedDB", e);
     }
 
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -171,15 +149,20 @@ export default function Home() {
     galleryInputRef.current?.click();
   }
 
-  function clearPhoto() {
+  async function clearPhoto() {
     if (isAnalyzing) return;
 
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setFile(null);
 
-    // ✅ zmazať aj fotku pre share
-    sessionStorage.removeItem("shelfie_photo");
+    // ✅ zmazať fotku pre share/export
+    sessionStorage.removeItem("shelfie_photo"); // legacy
+    try {
+      await idbDel("shelfie_photo_blob");
+    } catch (e) {
+      if (isDev) console.warn("Failed to delete photo from IndexedDB", e);
+    }
 
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
@@ -194,10 +177,7 @@ export default function Home() {
       const fd = new FormData();
       fd.append("image", file);
 
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        body: fd,
-      });
+      const res = await fetch("/api/analyze", { method: "POST", body: fd });
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -205,7 +185,6 @@ export default function Home() {
         alert(`Analýza zlyhala (${res.status})`);
         return;
       }
-
 
       const data = await res.json();
       sessionStorage.setItem("shelfie_result", JSON.stringify(data));
@@ -216,36 +195,18 @@ export default function Home() {
   }
 
   const cameraBtnClass = `
-    flex items-center justify-center gap-2
-    w-full
-    cursor-pointer
-    rounded-2xl
-    border-2 border-[#8d5d5d]
-    border-b-4 border-[#64393e]
-    bg-[#ea8d79]
-    px-2 py-2
-    text-m font-semibold
-    transition
-    active:translate-y-[2px]
-    active:border-b-2
-    active:bg-[#c57e6e]
+    flex items-center justify-center gap-2 w-full cursor-pointer rounded-2xl
+    border-2 border-[#8d5d5d] border-b-4 border-[#64393e]
+    bg-[#ea8d79] px-2 py-2 text-m font-semibold transition
+    active:translate-y-[2px] active:border-b-2 active:bg-[#c57e6e]
     text-white
   `;
 
   const galleryBtnClass = `
-    flex items-center justify-center gap-2
-    w-full
-    cursor-pointer
-    rounded-2xl
-    border-2 border-[#515d7e]
-    border-b-4 border-[#384361]
-    bg-[#18b1df]
-    px-2 py-2
-    text-m font-semibold
-    transition
-    active:translate-y-[2px]
-    active:border-b-2
-    active:bg-[#1a9dc5]
+    flex items-center justify-center gap-2 w-full cursor-pointer rounded-2xl
+    border-2 border-[#515d7e] border-b-4 border-[#384361]
+    bg-[#18b1df] px-2 py-2 text-m font-semibold transition
+    active:translate-y-[2px] active:border-b-2 active:bg-[#1a9dc5]
     text-white
   `;
 
@@ -263,29 +224,22 @@ export default function Home() {
               <ShelfieLogo />
             </div>
 
-<div className="mt-6 text-center">
-  <span className="inline-block bg-[#ffffff] px-2 py-1 rounded-[8px] text-2xl font-extrabold tracking-tight text-[#c88a5f]">
-    Čo prezradí tvoja knižnica?
-  </span>
-  <div className="mt-2 text-base font-normal tracking-normal text-slate-700">
-    Odfoť ju a zisti svoj knižný profil.
-  </div>
-</div>
+            <div className="mt-6 text-center">
+              <span className="inline-block bg-[#ffffff] px-2 py-1 rounded-[8px] text-2xl font-extrabold tracking-tight text-[#c88a5f]">
+                Čo prezradí tvoja knižnica?
+              </span>
+              <div className="mt-2 text-base font-normal tracking-normal text-slate-700">
+                Odfoť ju a zisti svoj knižný typ.
+              </div>
+            </div>
 
             <div
-  className="relative mt-5 aspect-square w-full overflow-hidden rounded-xl border-2 border-[#dfd6ba]"
-  style={{
-    boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
-  }}
->
+              className="relative mt-5 aspect-square w-full overflow-hidden rounded-xl border-2 border-[#dfd6ba]"
+              style={{ boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}
+            >
               {previewUrl ? (
                 <>
-                  <img
-                    src={previewUrl}
-                    alt="Vybraná fotka"
-                    className="h-full w-full object-cover"
-                  />
-
+                  <img src={previewUrl} alt="Vybraná fotka" className="h-full w-full object-cover" />
                   <button
                     onClick={clearPhoto}
                     disabled={isAnalyzing}
@@ -295,48 +249,28 @@ export default function Home() {
                   </button>
                 </>
               ) : (
-                <img
-                  src="/assets/home3.webp"
-                  alt=""
-                  className="h-full w-full object-contain"
-                  loading="eager"
-                />
+                <img src="/assets/home3.webp" alt="" className="h-full w-full object-contain" loading="eager" />
               )}
             </div>
 
             <div className="mt-5">
               {!hasPhoto ? (
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={openCamera}
-                    className={cameraBtnClass}
-                    disabled={isAnalyzing}
-                  >
+                  <button onClick={openCamera} className={cameraBtnClass} disabled={isAnalyzing}>
                     <CameraIcon className="h-8 w-8 stroke-[1.5]" />
                   </button>
-
-                  <button
-                    onClick={openGallery}
-                    className={galleryBtnClass}
-                    disabled={isAnalyzing}
-                  >
+                  <button onClick={openGallery} className={galleryBtnClass} disabled={isAnalyzing}>
                     <PhotoIcon className="h-8 w-8 stroke-[1.5]" />
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={analyze}
-                  disabled={isAnalyzing}
-                  className={analyzeBtnClass}
-                >
+                <button onClick={analyze} disabled={isAnalyzing} className={analyzeBtnClass}>
                   {isAnalyzing ? (
                     <AnalyzingLabel />
                   ) : (
                     <>
                       <SparklesIcon className="h-8 w-8 stroke-[1.2]" />
-                      <span className="uppercase tracking-wide">
-                        Zistiť môj profil
-                      </span>
+                      <span className="uppercase tracking-wide">Zistiť môj knižný typ</span>
                     </>
                   )}
                 </button>
@@ -344,8 +278,7 @@ export default function Home() {
             </div>
 
             <div className="mt-3 text-center text-xs text-slate-500">
-              <span className="font-semibold">TIP:</span> čitateľné chrbty kníh,
-              bez odlesku a s dobrým svetlom.
+              <span className="font-semibold">TIP:</span> čitateľné chrbty kníh, bez odlesku a s dobrým svetlom.
             </div>
           </div>
         </section>
@@ -365,9 +298,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-2 text-xs text-slate-500">
-            © 2026 Albatros Media Slovakia s.r.o.
-          </div>
+          <div className="mt-2 text-xs text-slate-500">© 2026 Albatros Media Slovakia s.r.o.</div>
         </footer>
       </div>
 
@@ -379,7 +310,6 @@ export default function Home() {
         className="hidden"
         onChange={(e) => pick(e.target.files?.[0], "camera")}
       />
-
       <input
         ref={galleryInputRef}
         type="file"

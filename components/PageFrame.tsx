@@ -29,7 +29,7 @@ export default function PageFrame({
   children,
 }: PageFrameProps) {
   return (
-    <main className="min-h-screen bg-[#d1d4fa] text-slate-900">
+    <main className="min-h-screen bg-[#fbf5e9] text-slate-900">
       <div className="mx-auto flex w-full max-w-md flex-col px-5 py-6">
         <section>
           <div className="p-4">

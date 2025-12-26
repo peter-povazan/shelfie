@@ -30,13 +30,13 @@ export type ArchetypeTheme = {
 
 export const ARCHETYPES = {
   Bezkniznik: {
-    title: "Bezknižník",
+    title: "Bez kníh",
     motif: "Žiadne knihy na dohľad",
-    insight: "Na fotke nevidím knihy alebo čitateľné chrbty.",
+    insight: "Tvoje príbehy na teba zatiaľ čakajú.",
     description:
       "Na fotke nevidím knihy alebo čitateľné chrbty. Skús odfotiť poličku s knihami a lepším svetlom.",
     theme: {
-      pageBg: "rgba(255, 202, 171, 1)",
+      pageBg: "rgba(126, 89, 67, 1)",
       imageSrcs: ["/assets/bezkniznik1.webp", "/assets/bezkniznik2.webp", "/assets/bezkniznik3.webp"],
     },
   },
@@ -48,7 +48,7 @@ export const ARCHETYPES = {
     description:
       "Príbeh v obrazoch je tvoj jazyk. Miluješ série, postavy a svety, ktoré rastú diel po diele.",
     theme: {
-      pageBg: "rgba(255, 255, 255, 1)",
+      pageBg: "rgba(223, 119, 113, 1)",
       imageSrcs: ["/assets/manga1.webp", "/assets/manga2.webp", "/assets/manga3.webp"],
     },
   },
@@ -60,7 +60,7 @@ export const ARCHETYPES = {
     description:
       "Herné svety, lore a univerzá ťa bavia rovnako ako hranie. Si doma v RPG, mapách a príbehoch z hier.",
     theme: {
-      pageBg: "rgba(255, 255, 255, 1)",
+      pageBg: "rgba(113, 87, 149, 1)",
       imageSrcs: ["/assets/gamer1.webp", "/assets/gamer2.webp", "/assets/gamer3.webp"],
     },
   },
@@ -84,7 +84,7 @@ export const ARCHETYPES = {
     description:
       "Premýšľaš dopredu. Fascinuje ťa budúcnosť, technológie a otázky, kam smerujeme.",
     theme: {
-      pageBg: "rgba(255, 255, 255, 1)",
+      pageBg: "rgba(73, 73, 127, 1)",
       imageSrcs: ["/assets/scifi1.webp", "/assets/scifi2.webp", "/assets/scifi3.webp"],
     },
   },
@@ -107,8 +107,8 @@ export const ARCHETYPES = {
     description:
       "Baví ťa mrazenie v chrbte, temná atmosféra a napätie, ktoré sa nedá odložiť. Čítaš aj po tme.",
     theme: {
-      pageBg: "rgba(255, 255, 255, 1)",
-      imageSrcs: ["/assets/horor1.webp", "/assets/horor2.webp", "/assets/horor3.webp"],
+      pageBg: "rgba(11, 9, 22, 1)",
+      imageSrcs: ["/assets/horor1.webp", "/assets/horor1.webp", "/assets/horor1.webp"],
     },
   },
 
